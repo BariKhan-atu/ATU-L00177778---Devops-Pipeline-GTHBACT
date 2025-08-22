@@ -1,8 +1,20 @@
 name: 'eShop CI/CD Pipeline - CAMS Framework'
 
+# Pipeline Flow:
+# 1. Code Review (PR only) - Automated code quality checks
+# 2. Build & Containers - Build solution and create containers
+# 3. Container Build - Build and push Docker images
+# 4. Security Scans - Security analysis and vulnerability scanning
+# 5. Integration Tests - Run integration and E2E tests
+# 6. Deploy Dev - Deploy to development environment
+# 7. Deploy Staging - Deploy to staging (manual approval)
+# 8. Deploy Production - Deploy to production (manual approval)
+# 9. Monitoring - Post-deployment monitoring and metrics
+# 10. Knowledge Sharing - Documentation and notifications
+
 on:
   push:
-    branches: [ main, 'feature/**' ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -390,7 +402,7 @@ jobs:
     name: 'Build & Push Containers (CAMS Framework)'
     runs-on: ubuntu-latest
     needs: build-and-containers
-    if: github.ref == 'refs/heads/dev'
+    if: github.ref == 'refs/heads/main'
     timeout-minutes: 30
     
     strategy:
@@ -449,7 +461,7 @@ jobs:
     name: 'Security Scans (CAMS Framework)'
     runs-on: ubuntu-latest
     needs: container-build
-    if: github.ref == 'refs/heads/dev'
+    if: github.ref == 'refs/heads/main'
     timeout-minutes: 30
     
     steps:
@@ -536,7 +548,7 @@ jobs:
     name: 'Integration & E2E Tests (CAMS Framework)'
     runs-on: ubuntu-latest
     needs: security-scans
-    if: github.ref == 'refs/heads/dev'
+    if: github.ref == 'refs/heads/main'
     timeout-minutes: 40
     
     services:
@@ -647,7 +659,7 @@ jobs:
     name: 'Deploy to Development Environment'
     runs-on: ubuntu-latest
     needs: [build-and-containers, container-build]
-    if: github.ref == 'refs/heads/dev' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && github.event.inputs.approval == 'approved')
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && github.event.inputs.approval == 'approved')
     environment: development
     timeout-minutes: 30
     continue-on-error: true
@@ -666,7 +678,7 @@ jobs:
     - name: Simulate Development Environment Deployment
       run: |
         echo "Simulating deployment to Azure Container Apps (Development Environment)"
-        echo "Target: eshop-dev container app"
+        echo "Target: eshop-main container app"
         echo "Resource Group: ${{ env.AZURE_RESOURCE_GROUP }}"
         echo "Image: ${{ env.IMAGE_NAME }}-webapp:${{ needs.build-and-containers.outputs.version }}"
         echo "Deployment Time: ${{ github.event.head_commit.timestamp }}"
@@ -921,7 +933,7 @@ jobs:
     name: 'Enhanced Monitoring & Metrics Collection (CAMS Framework)'
     runs-on: ubuntu-latest
     needs: [deploy-dev, deploy-staging, deploy-production]
-    if: github.ref == 'refs/heads/dev' || (github.event_name == 'workflow_dispatch' && github.event.inputs.approval == 'approved')
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.approval == 'approved')
     timeout-minutes: 30
     continue-on-error: true
     
