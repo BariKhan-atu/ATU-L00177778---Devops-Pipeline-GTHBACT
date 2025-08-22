@@ -523,29 +523,29 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
-          const deployment_status = '${{ needs.deploy-production.result }}' === 'success' ? '✅ SUCCESS' : '❌ FAILED'
+          const deployment_status = '${{ needs.deploy-production.result }}' === 'success' ? ' SUCCESS' : ' FAILED'
           const summary = `
-          # 🚀 eShop Deployment Summary
+          #  eShop Deployment Summary
           
           ## CAMS Framework Implementation
           
-          ### 🤝 Culture
-          - Code review automation: ✅ Completed
-          - Team collaboration tools: ✅ Active
+          ###  Culture
+          - Code review automation:  Completed
+          - Team collaboration tools:  Active
           
-          ### 🔄 Automation  
-          - Build & Test: ✅ Passed
-          - Security Scans: ✅ Completed
+          ###  Automation  
+          - Build & Test:  Passed
+          - Security Scans:  Completed
           - Multi-environment deployment: ${deployment_status}
           
-          ### 📊 Measurement
-          - DORA metrics: ✅ Recorded
-          - Performance monitoring: ✅ Active
-          - Error tracking: ✅ Configured
+          ###  Measurement
+          - DORA metrics:  Recorded
+          - Performance monitoring:  Active
+          - Error tracking: Configured
           
-          ### 📚 Sharing
-          - Documentation: ✅ Updated
-          - Team notifications: ✅ Sent
+          ###  Sharing
+          - Documentation:  Updated
+          - Team notifications:  Sent
           
           **Version**: ${{ needs.build-and-test.outputs.version }}
           **Build**: #${{ github.run_number }}
@@ -573,4 +573,3 @@ jobs:
           Build: #${{ github.run_number }}
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-##trigger
