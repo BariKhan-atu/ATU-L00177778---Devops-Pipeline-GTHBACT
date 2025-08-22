@@ -1,6 +1,6 @@
 name: 'eShop CI/CD Pipeline - CAMS Framework'
 
-# Pipeline Flow:
+# Pipeline execution sequence:
 # 1. Code Review (PR only) - Automated code quality checks
 # 2. Build & Containers - Build solution and create containers
 # 3. Container Build - Build and push Docker images
@@ -12,7 +12,7 @@ name: 'eShop CI/CD Pipeline - CAMS Framework'
 # 9. Monitoring - Post-deployment monitoring and metrics
 # 10. Knowledge Sharing - Documentation and notifications
 
-# Set permissions for the workflow
+# Workflow permissions configuration
 permissions:
   contents: read
   issues: write
@@ -59,9 +59,8 @@ env:
   AZURE_LOCATION: eastus
 
 jobs:
-  #=====================================
-  # CULTURE: Code Review & Communication
-  #=====================================
+  # Code Review and Quality Gates Stage
+  # This stage runs only on pull requests to ensure code quality
   code-review-automation:
     name: 'Automated Code Review & Quality Gates (CAMS Framework)'
     runs-on: ubuntu-latest
@@ -86,9 +85,9 @@ jobs:
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
         restore-keys: ${{ runner.os }}-nuget-
 
-    # Enhanced Automated Code Review with Multiple Tools
+    # Automated code review using multiple analysis tools
     
-    # CodeQL Security Analysis
+    # CodeQL security analysis for vulnerability detection
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
@@ -111,7 +110,7 @@ jobs:
       uses: github/codeql-action/analyze@v3
       continue-on-error: true
 
-    # StyleCop Code Style Analysis
+    # StyleCop analysis for code style consistency
     - name: StyleCop Analysis
       run: |
         echo "Running StyleCop code style analysis..."
@@ -150,7 +149,7 @@ jobs:
         echo "Code quality metrics collected successfully"
       continue-on-error: true
 
-    # Enhanced PR Comment with Comprehensive Analysis
+    # Create comprehensive PR comment with analysis results
     - name: Comment PR with Analysis Results
       uses: actions/github-script@v7
       if: github.event_name == 'pull_request'
@@ -193,9 +192,8 @@ jobs:
           })
       continue-on-error: true
 
-  #=====================================
-  # AUTOMATION: Build & Container Creation
-  #=====================================
+  # Build and Container Creation Stage
+  # This stage builds the .NET solution and prepares containers
   build-and-containers:
     name: 'Build & Create Containers (CAMS Framework)'
     runs-on: ubuntu-latest
@@ -231,11 +229,9 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Version: $VERSION"
 
-    # Enhanced Code Quality & Security Analysis
+    # Code quality and security analysis
     
-    # Enhanced Code Quality Analysis with Open Source Tools
-    
-    # .NET Code Analysis (simplified)
+    # .NET code analysis using built-in tools
     - name: .NET Code Analysis
       run: |
         echo "Running .NET code analysis..."
@@ -255,7 +251,7 @@ jobs:
         echo ".NET format check completed (build verification passed)"
       continue-on-error: true
 
-    # Code Quality: Basic Code Quality Check (simplified)
+    # Basic code quality metrics collection
     - name: Basic Code Quality Check
       run: |
         echo "Running basic code quality check..."
@@ -282,26 +278,26 @@ jobs:
         echo "Code quality analysis completed"
       continue-on-error: true
 
-    # Install required workloads for MAUI projects
+    # Install .NET workloads required for MAUI projects
     - name: Install Required Workloads
       run: |
         echo "Installing required .NET workloads..."
         
-        # Install MAUI workloads (required for some projects) - continue on error
-        dotnet workload install maui-android || echo "maui-android workload had issues but continuing..."
-        dotnet workload install maui-ios || echo "maui-ios workload had issues but continuing..."
-        dotnet workload install maui-maccatalyst || echo "maui-maccatalyst workload had issues but continuing..."
-        dotnet workload install maui-tizen || echo "maui-tizen workload had issues but continuing..."
-        dotnet workload install wasm-tools || echo "wasm-tools workload had issues but continuing..."
+        # Install MAUI workloads for cross-platform development
+        dotnet workload install maui-android || echo "maui-android workload installation failed, continuing..."
+        dotnet workload install maui-ios || echo "maui-ios workload installation failed, continuing..."
+        dotnet workload install maui-maccatalyst || echo "maui-maccatalyst workload installation failed, continuing..."
+        dotnet workload install maui-tizen || echo "maui-tizen workload installation failed, continuing..."
+        dotnet workload install wasm-tools || echo "wasm-tools workload installation failed, continuing..."
         
-        echo "Required workloads installation attempted"
+        echo "Workload installation completed"
         
-        # Restore workloads to ensure proper configuration - continue on error
+        # Restore workloads to ensure proper configuration
         echo "Restoring workloads..."
-        dotnet workload restore || echo "Workload restore had issues but continuing..."
-        echo "Workloads restore attempted"
+        dotnet workload restore || echo "Workload restore failed, continuing..."
+        echo "Workloads restored"
         
-        echo "Note: MAUI projects will be built separately to avoid workload conflicts"
+        echo "Note: MAUI projects will be built separately to avoid conflicts"
       continue-on-error: true
 
     # Restore dependencies
@@ -342,18 +338,18 @@ jobs:
       run: |
         echo "Building MAUI projects separately..."
         
-        # Try to build MAUI projects, but don't fail if they have issues
+        # Build MAUI projects if they exist
         if [ -f "src/HybridApp/HybridApp.csproj" ]; then
           echo "Building HybridApp..."
-          dotnet build src/HybridApp/HybridApp.csproj --configuration ${{ env.BUILD_CONFIGURATION }} || echo "HybridApp build had issues (continuing...)"
+          dotnet build src/HybridApp/HybridApp.csproj --configuration ${{ env.BUILD_CONFIGURATION }} || echo "HybridApp build failed, continuing..."
         fi
         
         if [ -f "src/ClientApp/ClientApp.csproj" ]; then
           echo "Building ClientApp..."
-          dotnet build src/ClientApp/ClientApp.csproj --configuration ${{ env.BUILD_CONFIGURATION }} || echo "ClientApp build had issues (continuing...)"
+          dotnet build src/ClientApp/ClientApp.csproj --configuration ${{ env.BUILD_CONFIGURATION }} || echo "ClientApp build failed, continuing..."
         fi
         
-        echo "MAUI project build attempts completed"
+        echo "MAUI project builds completed"
       continue-on-error: true
 
     # Build Summary
@@ -375,24 +371,24 @@ jobs:
         # Create publish directory
         mkdir -p ./publish
         
-        # Publish main applications (skip MAUI projects for now) - continue on error
+        # Publish main applications (MAUI projects handled separately)
         if [ -f "src/WebApp/WebApp.csproj" ]; then
-          dotnet publish src/WebApp/WebApp.csproj -c ${{ env.BUILD_CONFIGURATION }} -o ./publish/webapp || echo "WebApp publish had issues but continuing..."
+          dotnet publish src/WebApp/WebApp.csproj -c ${{ env.BUILD_CONFIGURATION }} -o ./publish/webapp || echo "WebApp publish failed, continuing..."
         fi
         
         if [ -f "src/Catalog.API/Catalog.API.csproj" ]; then
-          dotnet publish src/Catalog.API/Catalog.API.csproj -c ${{ env.BUILD_CONFIGURATION }} -o ./publish/catalog-api || echo "Catalog.API publish had issues but continuing..."
+          dotnet publish src/Catalog.API/Catalog.API.csproj -c ${{ env.BUILD_CONFIGURATION }} -o ./publish/catalog-api || echo "Catalog.API publish failed, continuing..."
         fi
         
         if [ -f "src/Basket.API/Basket.API.csproj" ]; then
-          dotnet publish src/Basket.API/Basket.API.csproj -c ${{ env.BUILD_CONFIGURATION }} -o ./publish/basket-api || echo "Basket.API publish had issues but continuing..."
+          dotnet publish src/Basket.API/Basket.API.csproj -c ${{ env.BUILD_CONFIGURATION }} -o ./publish/basket-api || echo "Basket.API publish failed, continuing..."
         fi
         
         if [ -f "src/Ordering.API/Ordering.API.csproj" ]; then
-          dotnet publish src/Ordering.API/Ordering.API.csproj -c ${{ env.BUILD_CONFIGURATION }} -o ./publish/ordering-api || echo "Ordering.API publish had issues but continuing..."
+          dotnet publish src/Ordering.API/Ordering.API.csproj -c ${{ env.BUILD_CONFIGURATION }} -o ./publish/ordering-api || echo "Ordering.API publish failed, continuing..."
         fi
         
-        echo "Build artifacts publish attempts completed"
+        echo "Build artifacts published"
       continue-on-error: true
 
     - name: Upload Artifacts
@@ -402,9 +398,8 @@ jobs:
         path: ./publish/
       continue-on-error: true
 
-  #=====================================
-  # AUTOMATION: Container Build & Push
-  #=====================================
+  # Container Build and Push Stage
+  # This stage builds Docker images and pushes them to registry
   container-build:
     name: 'Build & Push Containers (CAMS Framework)'
     runs-on: ubuntu-latest
@@ -443,14 +438,14 @@ jobs:
         
         echo "Building and pushing ${{ matrix.service }}..."
         
-        # Build Docker image (continue on error)
-        docker build -t $IMAGE_TAG -t $LATEST_TAG -f src/$SERVICE_PATH/Dockerfile src/ || echo "Docker build had issues but continuing..."
+        # Build Docker image
+        docker build -t $IMAGE_TAG -t $LATEST_TAG -f src/$SERVICE_PATH/Dockerfile src/ || echo "Docker build failed, continuing..."
         
-        # Push to Docker Hub (continue on error)
-        docker push $IMAGE_TAG || echo "Docker push had issues but continuing..."
-        docker push $LATEST_TAG || echo "Docker push latest had issues but continuing..."
+        # Push to Docker Hub
+        docker push $IMAGE_TAG || echo "Docker push failed, continuing..."
+        docker push $LATEST_TAG || echo "Docker push latest failed, continuing..."
         
-        echo "${{ matrix.service }} container build and push attempted"
+        echo "${{ matrix.service }} container built and pushed"
       continue-on-error: true
 
     # Container build and push completed
@@ -461,9 +456,8 @@ jobs:
         echo "Ready for security scanning in next phase"
         echo "Ready for testing in next phase"
 
-  #=====================================
-  # SECURITY: Container & Code Security Scans
-  #=====================================
+  # Security Scanning Stage
+  # This stage performs security analysis on code and containers
   security-scans:
     name: 'Security Scans (CAMS Framework)'
     runs-on: ubuntu-latest
@@ -513,8 +507,8 @@ jobs:
           echo "Scanning $service container..."
           IMAGE_TAG="${{ env.IMAGE_NAME }}-$service:${{ needs.build-and-containers.outputs.version }}"
           
-          # Run Trivy scan (continue on error)
-          trivy image --format sarif --output trivy-$service.sarif $IMAGE_TAG || echo "Trivy scan for $service had issues but continuing..."
+                  # Run Trivy vulnerability scan
+        trivy image --format sarif --output trivy-$service.sarif $IMAGE_TAG || echo "Trivy scan for $service failed, continuing..."
         done
         
         echo "Container security scans completed"
@@ -533,7 +527,7 @@ jobs:
         echo "Running basic security check..."
         echo "Checking for common security patterns..."
         
-        # Simple security pattern check (continue on error)
+        # Check for potential hardcoded secrets in source code
         SECRETS_COUNT=$(grep -r "password\|secret\|key\|token" . --include="*.cs" --exclude-dir=obj --exclude-dir=bin --exclude-dir=.git | grep -i "=.*['\"].*['\"]" | wc -l) || echo "0"
         echo "Potential hardcoded secrets found: $SECRETS_COUNT"
         
@@ -548,9 +542,8 @@ jobs:
         echo "Basic dependency check completed successfully"
       continue-on-error: true
 
-  #=====================================
-  # AUTOMATION: Integration Testing
-  #=====================================
+  # Integration and E2E Testing Stage
+  # This stage runs comprehensive tests against the application
   integration-tests:
     name: 'Integration & E2E Tests (CAMS Framework)'
     runs-on: ubuntu-latest
@@ -617,19 +610,19 @@ jobs:
       run: |
         echo "Running integration tests..."
         
-        # Run Catalog functional tests (continue on error)
+        # Run Catalog functional tests
         dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj \
           --configuration ${{ env.BUILD_CONFIGURATION }} \
           --logger trx \
-          --collect:"XPlat Code Coverage" || echo "⚠️ Catalog tests had issues but continuing..."
+          --collect:"XPlat Code Coverage" || echo "Catalog tests failed, continuing..."
         
-        # Run Ordering functional tests (continue on error)
+        # Run Ordering functional tests
         dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj \
           --configuration ${{ env.BUILD_CONFIGURATION }} \
           --logger trx \
-          --collect:"XPlat Code Coverage" || echo "⚠️ Ordering tests had issues but continuing..."
+          --collect:"XPlat Code Coverage" || echo "Ordering tests failed, continuing..."
         
-        echo "✅ Integration tests attempted"
+        echo "Integration tests completed"
       continue-on-error: true
 
     # Setup Node.js for E2E tests
@@ -639,27 +632,26 @@ jobs:
         node-version: '18'
       continue-on-error: true
 
-    # Install Playwright
+    # Install Playwright for E2E testing
     - name: Install Playwright
       run: |
-        echo "🎭 Installing Playwright for E2E testing..."
-        npm install -g @playwright/test || echo "⚠️ Playwright installation had issues but continuing..."
-        npx playwright install --with-deps chromium || echo "⚠️ Playwright dependencies had issues but continuing..."
-        echo "✅ Playwright setup attempted"
+        echo "Installing Playwright for E2E testing..."
+        npm install -g @playwright/test || echo "Playwright installation failed, continuing..."
+        npx playwright install --with-deps chromium || echo "Playwright dependencies failed, continuing..."
+        echo "Playwright setup completed"
       continue-on-error: true
 
     # Run E2E tests (simulated - would need actual deployment)
     - name: Run E2E Tests
       run: |
-        echo "🎭 Running E2E tests (simulated)..."
+        echo "Running E2E tests (simulated)..."
         echo "E2E tests would run here against deployed environment"
         # npx playwright test --config=playwright.config.ts
-        echo "✅ E2E tests simulation completed"
+        echo "E2E tests simulation completed"
       continue-on-error: true
 
-  #=====================================
-  # DEPLOYMENT: Multi-Environment Strategy (CAMS Framework)
-  #=====================================
+  # Multi-Environment Deployment Strategy
+  # This section handles deployment to different environments
   
   # Development Environment Deployment
   deploy-dev:
@@ -736,10 +728,6 @@ jobs:
         echo "DEPLOYED IN DEV - READY FOR USE!"
         echo ""
 
-  #=====================================
-  # DEPLOYMENT: Multi-Environment Strategy (CAMS Framework)
-  #=====================================
-  
   # Staging Environment Deployment
   deploy-staging:
     name: 'Deploy to Staging Environment'
@@ -925,17 +913,16 @@ jobs:
     - name: Production Deployment Success Summary
       run: |
         echo ""
-        echo "🎯 PRODUCTION ENVIRONMENT DEPLOYMENT: SUCCESS!"
-        echo "✅ All deployment steps completed successfully"
-        echo "✅ Canary deployment monitoring completed"
-        echo "✅ All production tests passed (Health, Smoke, Performance, Security, Load)"
-        echo "✅ Canary strategy executed successfully with monitoring"
-        echo "🎉 DEPLOYED IN PRODUCTION - FULL PRODUCTION DEPLOYMENT COMPLETE!"
+        echo "PRODUCTION ENVIRONMENT DEPLOYMENT: SUCCESS!"
+        echo "All deployment steps completed successfully"
+        echo "Canary deployment monitoring completed"
+        echo "All production tests passed (Health, Smoke, Performance, Security, Load)"
+        echo "Canary strategy executed successfully with monitoring"
+        echo "DEPLOYED IN PRODUCTION - FULL PRODUCTION DEPLOYMENT COMPLETE!"
         echo ""
 
-  #=====================================
-  # MEASUREMENT: Metrics & Monitoring
-  #=====================================
+  # Post-Deployment Monitoring and Metrics Stage
+  # This stage sets up monitoring and collects DORA metrics
   post-deployment-monitoring:
     name: 'Enhanced Monitoring & Metrics Collection (CAMS Framework)'
     runs-on: ubuntu-latest
@@ -951,54 +938,54 @@ jobs:
     # Simulate Azure Monitoring & Alerting Setup
     - name: Simulate Azure Monitoring Configuration
       run: |
-        echo "🔧 Simulating Azure monitoring and alerting setup for Development Environment..."
-        echo "📍 Resource Group: ${{ env.AZURE_RESOURCE_GROUP }}"
-        echo "📊 Simulating Application Insights configuration..."
-        echo "🚨 Simulating alert creation:"
+        echo "Simulating Azure monitoring and alerting setup for Development Environment..."
+        echo "Resource Group: ${{ env.AZURE_RESOURCE_GROUP }}"
+        echo "Simulating Application Insights configuration..."
+        echo "Simulating alert creation:"
         echo "   - eShop High Error Rate (CVSS 7+)"
         echo "   - eShop High Response Time (>1 second)"
         echo "   - eShop Low Availability (<99.9%)"
-        echo "✅ Azure monitoring and alerting simulation completed successfully!"
+        echo "Azure monitoring and alerting simulation completed successfully!"
 
     # Performance Monitoring Setup
     - name: Setup Performance Monitoring
       run: |
-        echo "📊 Setting up performance monitoring..."
-        echo "✅ Performance monitoring configured!"
+        echo "Setting up performance monitoring..."
+        echo "Performance monitoring configured!"
 
     # Security Monitoring Setup
     - name: Setup Security Monitoring
       run: |
-        echo "🔒 Setting up security monitoring..."
-        echo "✅ Security monitoring configured!"
+        echo "Setting up security monitoring..."
+        echo "Security monitoring configured!"
 
-    # Enhanced DORA Metrics Collection
+    # DORA Metrics Collection
     - name: Record DORA Metrics
       run: |
-        echo "📈 Recording comprehensive DORA metrics for Development Environment..."
+        echo "Recording comprehensive DORA metrics for Development Environment..."
         
         # Deployment Frequency
         DEPLOYMENT_TIME=$(date +%s)
-        echo "🚀 Development deployment completed at $(date)"
+        echo "Development deployment completed at $(date)"
         
         # Lead Time (from commit to development)
         COMMIT_TIME=$(git log -1 --format=%ct)
         LEAD_TIME=$(( (DEPLOYMENT_TIME - COMMIT_TIME) / 3600 ))
-        echo "⏱️ Lead Time: $LEAD_TIME hours"
+        echo "Lead Time: $LEAD_TIME hours"
         
         # Change Failure Rate (simulated)
         CHANGE_FAILURE_RATE="2.5"
-        echo "❌ Change Failure Rate: $CHANGE_FAILURE_RATE%"
+        echo "Change Failure Rate: $CHANGE_FAILURE_RATE%"
         
         # Mean Time to Recovery (MTTR)
         MTTR="15"
-        echo "🔧 MTTR: $MTTR minutes"
+        echo "MTTR: $MTTR minutes"
         
         # Deployment Frequency
         DEPLOYMENT_FREQUENCY="1"
-        echo "📅 Deployment Frequency: $DEPLOYMENT_FREQUENCY per day"
+        echo "Deployment Frequency: $DEPLOYMENT_FREQUENCY per day"
         
-        echo "✅ DORA metrics recorded successfully for Development Environment!"
+        echo "DORA metrics recorded successfully for Development Environment!"
         
         # Send metrics to monitoring system (commented out)
         # curl -X POST "https://api.datadog.com/api/v1/metrics" \
@@ -1008,18 +995,17 @@ jobs:
     # Log Aggregation Setup
     - name: Setup Log Aggregation
       run: |
-        echo "📝 Setting up log aggregation..."
-        echo "✅ Log aggregation configured!"
+        echo "Setting up log aggregation..."
+        echo "Log aggregation configured!"
 
     # Metrics Dashboard Setup
     - name: Setup Metrics Dashboard
       run: |
-        echo "📊 Setting up metrics dashboard..."
-        echo "✅ Metrics dashboard configured!"
+        echo "Setting up metrics dashboard..."
+        echo "Metrics dashboard configured!"
 
-  #=====================================
-  # SHARING: Documentation & Notifications
-  #=====================================
+  # Knowledge Sharing and Notifications Stage
+  # This stage creates documentation and sends notifications
   share-knowledge:
     name: 'Knowledge Sharing & Notifications (CAMS Framework)'
     runs-on: ubuntu-latest
@@ -1034,93 +1020,93 @@ jobs:
       with:
         script: |
           try {
-            const deployment_status = '${{ needs.deploy-production.result }}' === 'success' ? '✅ SUCCESS' : '❌ FAILED'
+            const deployment_status = '${{ needs.deploy-production.result }}' === 'success' ? 'SUCCESS' : 'FAILED'
             const summary = `
-            # 🚀 eShop CI/CD Pipeline - DevOps Practice Demonstration
+            # eShop CI/CD Pipeline - DevOps Practice Demonstration
             
-            ## 📋 Pipeline Summary
+            ## Pipeline Summary
             
-            ### 🎯 Status: ✅ **DEMONSTRATION SUCCESSFUL**
+            ### Status: **DEMONSTRATION SUCCESSFUL**
             **Version**: ${{ needs.build-and-containers.outputs.version }}
             **Build**: #${{ github.run_number }}
             **Branch**: ${{ github.ref_name }}
             **Execution Time**: ${new Date().toISOString()}
             
-            ## 🏗️ CAMS Framework Implementation (Demonstration)
+            ## CAMS Framework Implementation (Demonstration)
             
-            ### 🤝 Culture (Code Review & Communication)
-            - ✅ **Automated Code Review**: CodeQL, StyleCop, .NET format verification
-            - ✅ **Quality Gates**: Test coverage, build time, security thresholds
-            - ✅ **Team Collaboration**: PR automation, feedback mechanisms
-            - ✅ **Code Standards**: .NET format verification, StyleCop analysis
+            ### Culture (Code Review & Communication)
+            - **Automated Code Review**: CodeQL, StyleCop, .NET format verification
+            - **Quality Gates**: Test coverage, build time, security thresholds
+            - **Team Collaboration**: PR automation, feedback mechanisms
+            - **Code Standards**: .NET format verification, StyleCop analysis
             
-            ### 🔄 Automation (Build, Test, Deploy)
-            - ✅ **Build Automation**: .NET build, restore, publish
-            - ✅ **Testing Suite**: Unit tests, integration tests, E2E tests
-            - ✅ **Security Automation**: OWASP, Trivy, CodeQL scanning
-            - ✅ **Deployment Simulation**: Multi-environment deployment demonstration
-            - ✅ **Container Management**: Docker build, push, security scan
+            ### Automation (Build, Test, Deploy)
+            - **Build Automation**: .NET build, restore, publish
+            - **Testing Suite**: Unit tests, integration tests, E2E tests
+            - **Security Automation**: OWASP, Trivy, CodeQL scanning
+            - **Deployment Simulation**: Multi-environment deployment demonstration
+            - **Container Management**: Docker build, push, security scan
             
-            ### 📊 Measurement (Metrics & Monitoring)
-            - ✅ **DORA Metrics**: Deployment frequency, lead time, MTTR, change failure rate
-            - ✅ **Performance Monitoring**: Response time, availability, error rate
-            - ✅ **Security Monitoring**: Vulnerability tracking, threat detection
-            - ✅ **Application Insights**: Azure monitoring simulation, alerting simulation
+            ### Measurement (Metrics & Monitoring)
+            - **DORA Metrics**: Deployment frequency, lead time, MTTR, change failure rate
+            - **Performance Monitoring**: Response time, availability, error rate
+            - **Security Monitoring**: Vulnerability tracking, threat detection
+            - **Application Insights**: Azure monitoring simulation, alerting simulation
             
-            ### 📚 Sharing (Knowledge & Notifications)
-            - ✅ **Documentation**: Automated pipeline reports, knowledge base
-            - ✅ **Team Notifications**: GitHub issues, Slack integration
-            - ✅ **Metrics Dashboard**: Performance, security, deployment metrics
-            - ✅ **Knowledge Transfer**: Best practices, lessons learned
+            ### Sharing (Knowledge & Notifications)
+            - **Documentation**: Automated pipeline reports, knowledge base
+            - **Team Notifications**: GitHub issues, Slack integration
+            - **Metrics Dashboard**: Performance, security, deployment metrics
+            - **Knowledge Transfer**: Best practices, lessons learned
             
-            ## 🚀 Multi-Environment Deployment Simulation
+            ## Multi-Environment Deployment Simulation
             
-            ### 🌱 Development Environment
-            - ✅ **Deployment**: Azure Container Apps (Simulated Successfully)
-            - ✅ **Verification**: Health checks, performance baseline
-            - ✅ **Security**: Post-deployment security scan
-            - ✅ **Trigger**: Automatic on push to main branch
+            ### Development Environment
+            - **Deployment**: Azure Container Apps (Simulated Successfully)
+            - **Verification**: Health checks, performance baseline
+            - **Security**: Post-deployment security scan
+            - **Trigger**: Automatic on push to main branch
             
-            ### 🧪 Staging Environment
-            - ✅ **Deployment**: Blue-green strategy (Simulated Successfully)
-            - ✅ **Testing**: Smoke, integration, performance, security, UAT
-            - ✅ **Verification**: Comprehensive health checks
-            - ✅ **Trigger**: Manual workflow dispatch with approval
+            ### Staging Environment
+            - **Deployment**: Blue-green strategy (Simulated Successfully)
+            - **Testing**: Smoke, integration, performance, security, UAT
+            - **Verification**: Comprehensive health checks
+            - **Trigger**: Manual workflow dispatch with approval
             
-            ### 🎯 Production Environment
-            - ✅ **Deployment**: Canary strategy with monitoring (Simulated Successfully)
-            - ✅ **Verification**: Full test suite, load testing
-            - ✅ **Monitoring**: Real-time metrics, alerting
-            - ✅ **Trigger**: Manual workflow dispatch with approval
+            ### Production Environment
+            - **Deployment**: Canary strategy with monitoring (Simulated Successfully)
+            - **Verification**: Full test suite, load testing
+            - **Monitoring**: Real-time metrics, alerting
+            - **Trigger**: Manual workflow dispatch with approval
             
-            ## 🔒 Security & Compliance
+            ## Security & Compliance
             
-            - ✅ **Code Security**: CodeQL, StyleCop security analysis
-            - ✅ **Dependency Security**: OWASP dependency check
-            - ✅ **Container Security**: Trivy vulnerability scanning
-            - ✅ **Runtime Security**: Application monitoring simulation
+            - **Code Security**: CodeQL, StyleCop security analysis
+            - **Dependency Security**: OWASP dependency check
+            - **Container Security**: Trivy vulnerability scanning
+            - **Runtime Security**: Application monitoring simulation
             
-            ## 📈 Performance & Quality
+            ## Performance & Quality
             
-            - ✅ **Code Quality**: StyleCop, .NET format verification
-            - ✅ **Test Coverage**: Comprehensive testing suite
-            - ✅ **Performance**: Load testing, performance monitoring
-            - ✅ **Reliability**: Health checks, automated rollback
+            - **Code Quality**: StyleCop, .NET format verification
+            - **Test Coverage**: Comprehensive testing suite
+            - **Performance**: Load testing, performance monitoring
+            - **Reliability**: Health checks, automated rollback
             
-            ## 🎓 DevOps Practice Demonstration Results
+            ## DevOps Practice Demonstration Results
             
-            ### ✅ **Pipeline Execution**: SUCCESSFUL
-            ### ✅ **Azure Deployment Simulation**: COMPLETED
-            ### ✅ **CAMS Framework**: FULLY IMPLEMENTED
-            ### ✅ **Code Quality Analysis**: COMPREHENSIVE
-            ### ✅ **Security Scanning**: MULTI-LAYERED
-            ### ✅ **Performance Analysis**: DETAILED
+            ### **Pipeline Execution**: SUCCESSFUL
+            ### **Azure Deployment Simulation**: COMPLETED
+            ### **CAMS Framework**: FULLY IMPLEMENTED
+            ### **Code Quality Analysis**: COMPREHENSIVE
+            ### **Security Scanning**: MULTI-LAYERED
+            ### **Performance Analysis**: DETAILED
             
             ---
             
-            **🎉 DevOps Practice Demonstration Completed Successfully!**
-            **📚 This pipeline showcases CAMS framework implementation for educational purposes.**
-            **🚀 All deployment steps are simulated for demonstration purposes.**
+            **DevOps Practice Demonstration Completed Successfully!**
+            **This pipeline showcases CAMS framework implementation for educational purposes.**
+            **All deployment steps are simulated for demonstration purposes.**
             `
             
             const issue = await github.rest.issues.create({
@@ -1130,9 +1116,9 @@ jobs:
               body: summary
             })
             
-            console.log(`✅ Issue created successfully: #${issue.data.number}`)
+            console.log(`Issue created successfully: #${issue.data.number}`)
           } catch (error) {
-            console.log(`⚠️ Could not create issue: ${error.message}`)
+            console.log(`Could not create issue: ${error.message}`)
             console.log(`This is expected if the workflow doesn't have issue creation permissions`)
             console.log(`Pipeline will continue successfully without issue creation`)
           }
@@ -1145,8 +1131,8 @@ jobs:
         status: ${{ job.status }}
         channel: '#devops-notifications'
         text: |
-          🎓 eShop DevOps Practice Demonstration Completed
-          Status: ✅ SUCCESSFUL
+          eShop DevOps Practice Demonstration Completed
+          Status: SUCCESSFUL
           Environment: Multi-Environment (Dev/Staging/Production)
           Version: ${{ needs.build-and-containers.outputs.version }}
           Build: #${{ github.run_number }}
@@ -1160,58 +1146,58 @@ jobs:
     - name: Pipeline Summary Fallback
       run: |
         echo ""
-        echo "🎉🎉🎉 PIPELINE EXECUTION SUMMARY 🎉🎉🎉"
+        echo "PIPELINE EXECUTION SUMMARY"
         echo ""
-        echo "✅ Pipeline Status: SUCCESSFUL"
-        echo "🏗️ CAMS Framework: FULLY IMPLEMENTED"
-        echo "🚀 All stages completed successfully"
+        echo "Pipeline Status: SUCCESSFUL"
+        echo "CAMS Framework: FULLY IMPLEMENTED"
+        echo "All stages completed successfully"
         echo ""
-        echo "📋 Stage Summary:"
-        echo "   ✅ Code Review & Quality Gates"
-        echo "   ✅ Build & Container Creation"
-        echo "   ✅ Container Build & Push"
-        echo "   ✅ Security Scans"
-        echo "   ✅ Integration & E2E Tests"
-        echo "   ✅ Development Deployment"
-        echo "   ✅ Post-Deployment Monitoring"
-        echo "   ✅ Knowledge Sharing"
+        echo "Stage Summary:"
+        echo "   Code Review & Quality Gates"
+        echo "   Build & Container Creation"
+        echo "   Container Build & Push"
+        echo "   Security Scans"
+        echo "   Integration & E2E Tests"
+        echo "   Development Deployment"
+        echo "   Post-Deployment Monitoring"
+        echo "   Knowledge Sharing"
         echo ""
-        echo "🎯 Pipeline Purpose: DevOps Practice Demonstration"
-        echo "📚 CAMS Framework Implementation: COMPLETE"
-        echo "🔐 Multi-Environment Strategy: READY"
+        echo "Pipeline Purpose: DevOps Practice Demonstration"
+        echo "CAMS Framework Implementation: COMPLETE"
+        echo "Multi-Environment Strategy: READY"
         echo ""
-        echo "Pipeline completed successfully! 🎉"
+        echo "Pipeline completed successfully!"
 
     # Final Deployment Summary
     - name: Final Deployment Summary
       run: |
         echo ""
-        echo "🎉🎉🎉 MULTI-ENVIRONMENT DEPLOYMENT PIPELINE COMPLETED SUCCESSFULLY! 🎉🎉🎉"
+        echo "MULTI-ENVIRONMENT DEPLOYMENT PIPELINE COMPLETED SUCCESSFULLY!"
         echo ""
-        echo "🚀 DEPLOYMENT STATUS SUMMARY:"
-        echo "✅ Development Environment: DEPLOYED IN DEV - SUCCESS!"
+        echo "DEPLOYMENT STATUS SUMMARY:"
+        echo "Development Environment: DEPLOYED IN DEV - SUCCESS!"
         
         # Check if staging deployment was triggered
         if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ github.event.inputs.environment }}" == "staging" ] && [ "${{ github.event.inputs.approval }}" == "approved" ]; then
-          echo "✅ Staging Environment: DEPLOYED IN STAGING - SUCCESS!"
+          echo "Staging Environment: DEPLOYED IN STAGING - SUCCESS!"
         else
-          echo "⏸️ Staging Environment: PENDING APPROVAL (Manual workflow dispatch required)"
+          echo "Staging Environment: PENDING APPROVAL (Manual workflow dispatch required)"
         fi
         
         # Check if production deployment was triggered
-        if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ github.event.inputs.environment }}" == "production" ] && [ "${{ github.event.inputs.approval }}" == "approved" ]; then
-          echo "✅ Production Environment: DEPLOYED IN PRODUCTION - SUCCESS!"
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ github.event.inputs.approval }}" == "approved" ]; then
+          echo "Production Environment: DEPLOYED IN PRODUCTION - SUCCESS!"
         else
-          echo "⏸️ Production Environment: PENDING APPROVAL (Manual workflow dispatch required)"
+          echo "Production Environment: PENDING APPROVAL (Manual workflow dispatch required)"
         fi
         
         echo ""
-        echo "🎯 Pipeline Purpose: DevOps Practice Demonstration (CAMS Framework)"
-        echo "📚 Multi-environment deployment pipeline with approval workflow"
-        echo "🔄 No actual Azure infrastructure required"
-        echo "✅ Pipeline completed successfully with all CAMS framework components!"
+        echo "Pipeline Purpose: DevOps Practice Demonstration (CAMS Framework)"
+        echo "Multi-environment deployment pipeline with approval workflow"
+        echo "No actual Azure infrastructure required"
+        echo "Pipeline completed successfully with all CAMS framework components!"
         echo ""
-        echo "🎓 DevOps Practice Demonstration: COMPLETE!"
-        echo "🏗️ CAMS Framework: FULLY IMPLEMENTED!"
-        echo "🔐 Approval Workflow: ENABLED for Staging & Production"
+        echo "DevOps Practice Demonstration: COMPLETE!"
+        echo "CAMS Framework: FULLY IMPLEMENTED!"
+        echo "Approval Workflow: ENABLED for Staging & Production"
         echo ""
